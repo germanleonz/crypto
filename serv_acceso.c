@@ -1,5 +1,35 @@
 #include "common.h"
-    
+
+/*
+ *	Funcion: comprobar_parametros
+ *	-----------------------------
+ *	Hace la verificacion de los parametros introducidos por la linea de comandos
+ * 
+ *  argc:				cantidad de argumentos que se recibieron consola
+ * 
+ *  argv[]:				arreglo que contiene los argumentos que se pasaron por
+ *						consola
+ * 
+ */
+int chequear_parametros (int argc, char* argv[], int* num_puerto)
+{
+	switch(argc)
+        {
+		case 3: //Se recibe el numero del puerto donde correra el servidor
+			if ((strcmp(argv[1], "-p")) != 0)
+				return FALSE;
+			else
+			{
+				if (atoi(argv[2]) < 1024)
+					return FALSE;
+				else
+					*num_puerto = atoi(argv[2]);
+			}
+		default: // En cualquier otro caso
+			return FALSE;	
+	}
+}
+
 void do_server_loop(BIO * conn)
 {
     int err, nread;
@@ -31,28 +61,35 @@ void THREAD_CC server_thread(void *arg)
 
 int main(int argc, const char *argv[])
 {
-    char* port = argv[2];
-    printf("%s\n", port);
+    int num_puerto;
 
-    BIO *acc, *client;
-    THREAD_TYPE tid;
+    int parametros_ok = chequear_parametros(argc, argv, &num_puerto);
+    if (!parametros_ok) {
+        perror("Formato incorrecto de parametros");
+        return 0;
+    } 
 
-    init_openSSL();
+    printf("Escuchando conexiones por el puerto %d ...", num_puerto);
 
-    acc = BIO_new_accept(port);
-    if (!acc) 
-        int_error("Error creating server socket.");
-    if (BIO_do_accept(acc) <= 0) 
-        int_error("Error binding server socket");
+    /*BIO *acc, *client;*/
+    /*THREAD_TYPE tid;*/
 
-    for (;;) {
-        if (BIO_do_accept(acc) <= 0) 
-            int_error("Error accepting connection");
+    /*init_openSSL();*/
 
-        client = BIO_pop(acc);
-        THREAD_CREATE(tid, server_thread, client);
-    }
+    /*acc = BIO_new_accept(port);*/
+    /*if (!acc) */
+        /*int_error("Error creating server socket.");*/
+    /*if (BIO_do_accept(acc) <= 0) */
+        /*int_error("Error binding server socket");*/
 
-    BIO_free(acc);
+    /*for (;;) {*/
+        /*if (BIO_do_accept(acc) <= 0) */
+            /*int_error("Error accepting connection");*/
+
+        /*client = BIO_pop(acc);*/
+        /*THREAD_CREATE(tid, server_thread, client);*/
+    /*}*/
+
+    /*BIO_free(acc);*/
     return 0;
 }
