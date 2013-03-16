@@ -7,12 +7,11 @@ void handle_error(const char *file, int lineno, const char* msg)
     exit(-1);
 }
 
-void init_openSSL(void)
+void init_OpenSSL(void)
 {
     if (!SSL_library_init()) {
-        fprintf(stderr, " ** OpenSSL initialization failed\n");
+        fprintf(stderr, " ** Inicializacion fallida de OpenSSL\n");
         exit(-1);
     }
     SSL_load_error_strings();
 }
-    

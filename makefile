@@ -1,16 +1,16 @@
-all:    serv_acceso acceso_rem
+all:    serv_acceso_seg	 acceso_rem_seg
 
-acceso_rem:		common.o acceso_rem.o
-				gcc common.o acceso_rem.o -o acceso_rem -l ssl
+acceso_rem_seg:		common.o acceso_rem_seg.o
+					gcc common.o acceso_rem_seg.o -o acceso_rem_seg -l ssl
 
-acceso_rem.o:   acceso_rem.o
-				gcc -c acceso_rem.c 
+acceso_rem_seg.o:   acceso_rem_seg.o
+					gcc -c acceso_rem_seg.c 
 
-serv_acceso:    common.o serv_acceso.o
-				gcc common.o serv_acceso.o -o serv_acceso -l ssl -l pthread
+serv_acceso_seg:   	common.o serv_acceso_seg.o
+					gcc common.o serv_acceso_seg.o -o serv_acceso_seg -l ssl -l pthread
 
-serv_acceso.o:  serv_acceso.c 
-				gcc -c serv_acceso.c
+serv_acceso_seg.o: 	serv_acceso_seg.c 
+					gcc -c serv_acceso_seg.c
 
-common.o:       common.c common.h
-				gcc -c common.c -l ssl 
+common.o:       	common.c common.h
+					gcc -c common.c -l ssl 

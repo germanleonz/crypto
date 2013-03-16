@@ -12,7 +12,12 @@
 
 #define int_error(msg)  handle_error(__FILE__, __LINE__, msg) 
 
+#ifndef BOOLEANOS
+#define BOOLEANOS
+#define FALSE 0
+#define TRUE 1
+#endif
+
 void handle_error(const char *file, int lineno, const char *msg);
     
-void init_openSSL(void);
-
+void init_OpenSSL(void);
