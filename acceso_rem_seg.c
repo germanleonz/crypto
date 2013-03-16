@@ -1,5 +1,19 @@
 #include "common.h"
 
+#define CERTFILE "client.pem"
+
+SSL_CTX* setup_client_ctx(void)
+{
+    SSL_CTX *ctx;
+
+    ctx = SSL_CTX_new(SSLv23_method());
+    if (SSL_CTX_use_certificate_chain_file(ctx, CERTFILE) != 1) 
+        int_error("Error cargando certificado del archivo");
+    if (SSL_CTX_use_PrivateKey_file(ctx, CERTFILE, SSL_FILETYPE_PEM) != 1) 
+        int_error("Error cargando la clave privada del archivo");
+    return ctx;
+}
+
 /*
  *	Funcion: comprobarParametros
  *	----------------------------
@@ -43,10 +57,10 @@ int comprobar_parametros(int argc, char* argv[], char* dir_servidor[], char * nu
  *	-----------------------
  *	Funcion que deja al cliente en un loop
  * 
- *  conn:	Objeto BIO*
+ *  conn:	Objeto SSL*
  * 
  */
-void do_client_loop(BIO *conn)
+int do_client_loop(SSL *ssl)
 {
     int err, nwritten;
     char buf[80];
@@ -56,12 +70,13 @@ void do_client_loop(BIO *conn)
             break;
 
         for (nwritten = 0; nwritten < sizeof(buf); nwritten += err) {
-            err = BIO_write(conn, buf + nwritten, strlen(buf) - nwritten);
+            err = SSL_write(ssl, buf + nwritten, strlen(buf) - nwritten);
             if (err <= 0) {
-                return;
+                return 0;
             }
         }
     }
+    return 1;
 }
 
 /*
@@ -84,10 +99,15 @@ int main(int argc, const char *argv[])
         int_error("Formato incorrecto de parametros");
     }
 
-    BIO * conn;
-    
     //  Inicializacion de OpenSSL
+    BIO     *conn;
+    SSL     *ssl;
+    SSL_CTX *ctx;
+    
     init_OpenSSL();
+    /*seed_prng();*/
+
+    ctx = setup_client_ctx();
     
     //  Establecemos la conexion con el servidor
     char * direccion_puerto = malloc(snprintf(NULL, 0, "%s:%s", dir_servidor, num_puerto) + 1);
@@ -96,16 +116,26 @@ int main(int argc, const char *argv[])
 
     conn = BIO_new_connect(direccion_puerto);
     if (!conn) 
-        int_error("Error creating connection BIO");
+        int_error("Error creando conexion BIO");
     
-    if (BIO_do_connect(conn) <= 0) {
-        int_error("Error connecting to remote machine ");
-    }
+    if (BIO_do_connect(conn) <= 0) 
+        int_error("Error conectandose a la maquina remota");
 
-    fprintf(stderr, "Connection opened\n");
-    do_client_loop(conn);
-    fprintf(stderr, "Connection closed\n");
+    if (!(ssl = SSL_new(ctx))) 
+        int_error("Error creando un SSL context");
+    SSL_set_bio(ssl, conn, conn);
+    if (SSL_connect(ssl) <= 0) 
+        int_error("Error conectando el objeto SSL");
 
-    BIO_free(conn);
+    fprintf(stderr, "SSL Connection opened\n");
+    if (do_client_loop(ssl))
+        SSL_shutdown(ssl);
+    else
+        SSL_clear(ssl);
+    fprintf(stderr, "SSL Connection closed\n");
+
+    //  Terminamos la conexion con el servidor
+    SSL_free(ssl);
+    SSL_CTX_free(ctx);
     return 0;
 }
