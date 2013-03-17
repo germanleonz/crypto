@@ -47,6 +47,11 @@ int comprobar_parametros(int argc, char* argv[], char* num_puerto[])
     return TRUE;
 }
 
+int validar_credenciales(char * nombre_usuario, char * clave)
+{
+    return 1;
+}
+
 /*
  *	Funcion: do_server_loop
  *	-----------------------------
@@ -57,18 +62,46 @@ int comprobar_parametros(int argc, char* argv[], char* num_puerto[])
  */
 int do_server_loop(SSL *ssl)
 {
-    int err, nread;
-    char buf[80];
+    //  Enviamos la solicitud del nombre de usuario
+    printf("Solicitando nombre de usuario...\n");
+    const char prompt_nombre[] = "Nombre de usuario: ";
+    SSL_write(ssl, prompt_nombre, strlen(prompt_nombre));
 
-    do {
-        for (nread = 0; nread < sizeof(buf); nread += err) {
-            err = SSL_read(ssl, buf + nread, sizeof(buf) - nread);
-            if (err <= 0) {
-                break;
-            }
-        }
-        fwrite(buf, 1, nread, stdout);
-    } while (err > 0);
+    char nombre_usuario[240];
+    SSL_read(ssl, nombre_usuario, sizeof(nombre_usuario));
+    printf("Nombre de usuario recibido %s", nombre_usuario);
+
+    //  Enviamos la solicitud de la contrasena
+    printf("Solicitando clave ...\n");
+    const char prompt_clave[] = "Clave: ";
+    SSL_write(ssl, prompt_clave, strlen(prompt_clave));
+
+    char clave[240];
+    SSL_read(ssl, clave, sizeof(clave));
+    printf("Clave recibida %s", clave);
+
+    // Verificando credenciales
+    if (validar_credenciales(nombre_usuario, clave)) {
+        const char acceso_autorizado[] = "Usuario autorizado\n";
+        SSL_write(ssl, acceso_autorizado, strlen(acceso_autorizado));
+    } else {
+        const char acceso_negado[] = "Acceso negado\n";
+        SSL_write(ssl, acceso_negado, strlen(acceso_negado));
+    }
+
+    /*int err, nread;*/
+    /*char buf[80];*/
+
+    /*do {*/
+        /*for (nread = 0; nread < sizeof(buf); nread += err) {*/
+            /*err = SSL_read(ssl, buf + nread, sizeof(buf) - nread);*/
+            /*if (err <= 0) {*/
+                /*break;*/
+            /*}*/
+        /*}*/
+        /*fwrite(buf, 1, nread, stdout);*/
+    /*} while (err > 0);*/
+
     return (SSL_get_shutdown(ssl) & SSL_RECEIVED_SHUTDOWN) ? 1 : 0;
 }
 
@@ -91,14 +124,16 @@ void THREAD_CC server_thread(void *arg)
 
     if (SSL_accept(ssl) <= 0)
         int_error("Error aceptando conexion SSL");
-    fprintf(stderr, "Conexion SSL abierta\n");
+
+    fprintf(stderr, "*** Conexion SSL abierta ***\n");
     if (do_server_loop(ssl))
         SSL_shutdown(ssl);
     else 
         SSL_clear(ssl);
-    fprintf(stderr, "Conexion SSL cerrada.\n");
-    SSL_free(ssl);
+    fprintf(stderr, "*** Conexion SSL cerrada ***\n");
 
+    //  Terminamos la conexion con el cliente
+    SSL_free(ssl);
     ERR_remove_state(0);
 }
 
@@ -144,7 +179,7 @@ int main(int argc, const char *argv[])
     //  Esto es lo que se hace una vez que estamos esperando conexiones
     for (;;) {
         if (BIO_do_accept(acc) <= 0) 
-            int_error("Error accepting connection");
+            int_error("Error aceptando conexion");
 
         client = BIO_pop(acc);
         if (!(ssl = SSL_new(ctx)))

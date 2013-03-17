@@ -2,6 +2,16 @@
 
 #define CERTFILE "client.pem"
 
+/*
+ *	Funcion: setup_client_ctx
+ *	-------------------------
+ *	Verifica los parametros introducidos por la linea de comandos
+ * 
+ *  argc:				cantidad de argumentos que se recibieron consola
+ * 
+ *  argv[]:				arreglo de argumentos pasados por la consola
+ * 
+ */
 SSL_CTX* setup_client_ctx(void)
 {
     SSL_CTX *ctx;
@@ -57,25 +67,50 @@ int comprobar_parametros(int argc, char* argv[], char* dir_servidor[], char * nu
  *	-----------------------
  *	Funcion que deja al cliente en un loop
  * 
- *  conn:	Objeto SSL*
+ *  ssl	    Objeto SSL*
  * 
  */
 int do_client_loop(SSL *ssl)
 {
-    int err, nwritten;
-    char buf[80];
+    //  El servidor envia el primer mensaje el cual es la solicitud
+    //  del nombre de usuario
+    int err, nread;
+    char aux[240];
 
-    for (;;){
-        if (!fgets(buf, sizeof(buf), stdin)) 
-            break;
+    err = SSL_read(ssl, aux, sizeof(aux));
+    fwrite(aux, 1, strlen(aux), stdout);
 
-        for (nwritten = 0; nwritten < sizeof(buf); nwritten += err) {
-            err = SSL_write(ssl, buf + nwritten, strlen(buf) - nwritten);
-            if (err <= 0) {
-                return 0;
-            }
-        }
-    }
+    char nombre_usuario[240];
+    fgets(nombre_usuario, sizeof(nombre_usuario), stdin);
+    err = SSL_write(ssl, nombre_usuario, strlen(nombre_usuario));
+
+    //  Luego leemos la solicitud de contrasena
+    err = SSL_read(ssl, aux, sizeof(aux));
+    fwrite(aux, 1, strlen(aux), stdout);
+
+    char clave[240];
+    fgets(clave, sizeof(clave), stdin);
+    err = SSL_write(ssl, clave, strlen(clave));
+
+    //  Esperamos la respuesta del servidor una vez que este revise las credenciales
+    err = SSL_read(ssl, aux, sizeof(aux));
+    fwrite(aux, 1, strlen(aux), stdout);
+
+    /*int err, nwritten;*/
+    /*char buf[80];*/
+
+    /*while (TRUE) {*/
+        /*if (!fgets(buf, sizeof(buf), stdin)) */
+            /*break;*/
+
+        /*for (nwritten = 0; nwritten < sizeof(buf); nwritten += err) {*/
+            /*err = SSL_write(ssl, buf + nwritten, strlen(buf) - nwritten);*/
+            /*if (err <= 0) {*/
+                /*return 0;*/
+            /*}*/
+        /*}*/
+    /*}*/
+
     return 1;
 }
 
@@ -127,12 +162,12 @@ int main(int argc, const char *argv[])
     if (SSL_connect(ssl) <= 0) 
         int_error("Error conectando el objeto SSL");
 
-    fprintf(stderr, "SSL Connection opened\n");
+    fprintf(stderr, "*** Conexion SSL abierta ***\n");
     if (do_client_loop(ssl))
         SSL_shutdown(ssl);
     else
         SSL_clear(ssl);
-    fprintf(stderr, "SSL Connection closed\n");
+    fprintf(stderr, "*** Conexion SSL cerrada ***\n");
 
     //  Terminamos la conexion con el servidor
     SSL_free(ssl);
