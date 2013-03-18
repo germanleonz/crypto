@@ -1,4 +1,5 @@
 #include "common.h"
+#include <openssl/sha.h>
 
 #define CERTFILE "server.pem"
 
@@ -64,6 +65,8 @@ int validar_credenciales(char * nombre_usuario, char * clave)
         sscanf(linea, "%s %s", nombre_aux, clave_aux);
         if (strcmp(nombre_aux, nombre_usuario) == 0) {
             //  Encontramos el usuario verificamos su clave
+            SHA256_CTX ctx; 
+            /*sha1(, ,);*/
             return strcmp(clave_aux, clave) == 0 ? TRUE : FALSE;
             break;
         }
