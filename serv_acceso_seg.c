@@ -49,7 +49,27 @@ int comprobar_parametros(int argc, char* argv[], char* num_puerto[])
 
 int validar_credenciales(char * nombre_usuario, char * clave)
 {
-    return 1;
+    //  Abrir archivo con las claves
+    int ok = 0;
+    FILE * archivo;
+    archivo = fopen("shadow", "r");
+    if (archivo == NULL)
+        int_error("Error abriendo el archivo de claves");
+
+    //  Buscar la clave que corresponde a nombre_usuario
+    char linea[1024];
+    char nombre_aux[512];
+    char clave_aux[512];
+    while (fgets(linea, strlen(linea), archivo)) {
+        sscanf(linea, "%s %s", nombre_aux, clave_aux);
+        if (strcmp(nombre_aux, nombre_usuario) == 0) {
+            //  Encontramos el usuario verificamos su clave
+            return strcmp(clave_aux, clave) == 0 ? TRUE : FALSE;
+            break;
+        }
+    }
+
+    return FALSE;
 }
 
 /*
@@ -69,6 +89,8 @@ int do_server_loop(SSL *ssl)
 
     char nombre_usuario[240];
     SSL_read(ssl, nombre_usuario, sizeof(nombre_usuario));
+    char *pos = strchr(nombre_usuario, '\n');
+    *pos = '\0';
     printf("Nombre de usuario recibido %s", nombre_usuario);
 
     //  Enviamos la solicitud de la contrasena
@@ -78,29 +100,18 @@ int do_server_loop(SSL *ssl)
 
     char clave[240];
     SSL_read(ssl, clave, sizeof(clave));
+    pos = strchr(clave, '\n');
+    *pos = '\0';
     printf("Clave recibida %s", clave);
 
     // Verificando credenciales
-    if (validar_credenciales(nombre_usuario, clave)) {
+    if (validar_credenciales(nombre_usuario, clave) == TRUE) {
         const char acceso_autorizado[] = "Usuario autorizado\n";
         SSL_write(ssl, acceso_autorizado, strlen(acceso_autorizado));
     } else {
         const char acceso_negado[] = "Acceso negado\n";
         SSL_write(ssl, acceso_negado, strlen(acceso_negado));
     }
-
-    /*int err, nread;*/
-    /*char buf[80];*/
-
-    /*do {*/
-        /*for (nread = 0; nread < sizeof(buf); nread += err) {*/
-            /*err = SSL_read(ssl, buf + nread, sizeof(buf) - nread);*/
-            /*if (err <= 0) {*/
-                /*break;*/
-            /*}*/
-        /*}*/
-        /*fwrite(buf, 1, nread, stdout);*/
-    /*} while (err > 0);*/
 
     return (SSL_get_shutdown(ssl) & SSL_RECEIVED_SHUTDOWN) ? 1 : 0;
 }

@@ -74,7 +74,7 @@ int do_client_loop(SSL *ssl)
 {
     //  El servidor envia el primer mensaje el cual es la solicitud
     //  del nombre de usuario
-    int err, nread;
+    int err;
     char aux[240];
 
     err = SSL_read(ssl, aux, sizeof(aux));
@@ -85,6 +85,7 @@ int do_client_loop(SSL *ssl)
     err = SSL_write(ssl, nombre_usuario, strlen(nombre_usuario));
 
     //  Luego leemos la solicitud de contrasena
+    memset(aux, 0, 240);
     err = SSL_read(ssl, aux, sizeof(aux));
     fwrite(aux, 1, strlen(aux), stdout);
 
@@ -93,23 +94,9 @@ int do_client_loop(SSL *ssl)
     err = SSL_write(ssl, clave, strlen(clave));
 
     //  Esperamos la respuesta del servidor una vez que este revise las credenciales
+    memset(aux, 0, 240);
     err = SSL_read(ssl, aux, sizeof(aux));
     fwrite(aux, 1, strlen(aux), stdout);
-
-    /*int err, nwritten;*/
-    /*char buf[80];*/
-
-    /*while (TRUE) {*/
-        /*if (!fgets(buf, sizeof(buf), stdin)) */
-            /*break;*/
-
-        /*for (nwritten = 0; nwritten < sizeof(buf); nwritten += err) {*/
-            /*err = SSL_write(ssl, buf + nwritten, strlen(buf) - nwritten);*/
-            /*if (err <= 0) {*/
-                /*return 0;*/
-            /*}*/
-        /*}*/
-    /*}*/
 
     return 1;
 }
