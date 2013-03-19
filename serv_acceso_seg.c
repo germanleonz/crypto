@@ -58,12 +58,11 @@ int validar_credenciales(char * nombre_usuario, char * clave)
         int_error("Error abriendo el archivo de claves");
 
     //  Buscar la clave que corresponde a nombre_usuario
-    char linea[1024];
+    char linea[BUFSIZ];
     char nombre_aux[512];
     char clave_aux[512];
 
-
-    while (fgets(linea, strlen(linea), archivo)) {
+    while (fgets(linea, sizeof(linea), archivo)) {
         sscanf(linea, "%s %s", nombre_aux, clave_aux);
         if (strcmp(nombre_aux, nombre_usuario) == 0) {
             //  Encontramos el usuario verificamos su clave
@@ -75,13 +74,11 @@ int validar_credenciales(char * nombre_usuario, char * clave)
 
             int i;
             for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-                printf("hash[%d] = %02x\n", i, hash[i]);
-                sprintf(hash_string + i, "%02x", hash[i]);
-                printf("hash_string[%d] = %s\n", i, hash_string + i);
+                sprintf(hash_string + (2*i), "%02x", hash[i]);
             }
 
-            printf("Clave_aux:%s:\n", clave_aux);
-            printf("Hash:%s:\n", hash_string - SHA256_DIGEST_LENGTH + 1);
+            printf("Clave en archivo:%s:\n", clave_aux);
+            printf("Hash string: %s\n", hash_string);
 
             return strcmp(clave_aux, hash_string) == 0 ? TRUE : FALSE;
             break;
