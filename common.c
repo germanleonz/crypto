@@ -15,3 +15,16 @@ void init_OpenSSL(void)
     }
     SSL_load_error_strings();
 }
+
+int calcular_SHA(char *texto, u_int8_t * results[])
+{
+    SHA256_CTX ctx;
+    int n;
+
+    n = strlen(texto);
+    SHA256_Init(&ctx);
+    SHA256_Update(&ctx, (u_int8_t *) texto, n);
+    SHA256_Final(results, &ctx);
+
+    return TRUE;
+}

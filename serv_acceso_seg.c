@@ -28,23 +28,23 @@ SSL_CTX* setup_server_ctx(void)
  */
 int comprobar_parametros(int argc, char* argv[], char* num_puerto[])
 {
-	switch(argc)
-        {
-		case 3: 
+    switch(argc)
+    {
+        case 3: 
             //Se recibe el numero del puerto donde correra el servidor
-			if ((strcmp(argv[1], "-p")) != 0)
-				return FALSE;
-			else
-			{
-				if ((atoi(argv[2]) < 1024) || (atoi(argv[2]) > 65535))
-					return FALSE;
-				else
-					*num_puerto = argv[2];
-			}
+            if ((strcmp(argv[1], "-p")) != 0)
+                return FALSE;
+            else
+            {
+                if ((atoi(argv[2]) < 1024) || (atoi(argv[2]) > 65535))
+                    return FALSE;
+                else
+                    *num_puerto = argv[2];
+            }
             break;
-		default: // En cualquier otro caso
-			return FALSE;	
-	}
+        default: // En cualquier otro caso
+            return FALSE;	
+    }
     return TRUE;
 }
 
@@ -61,13 +61,29 @@ int validar_credenciales(char * nombre_usuario, char * clave)
     char linea[1024];
     char nombre_aux[512];
     char clave_aux[512];
+
+
     while (fgets(linea, strlen(linea), archivo)) {
         sscanf(linea, "%s %s", nombre_aux, clave_aux);
         if (strcmp(nombre_aux, nombre_usuario) == 0) {
             //  Encontramos el usuario verificamos su clave
-            SHA256_CTX ctx; 
-            /*sha1(, ,);*/
-            return strcmp(clave_aux, clave) == 0 ? TRUE : FALSE;
+            u_int8_t hash[SHA256_DIGEST_LENGTH];
+            calcular_SHA(clave, hash);
+
+            char* hash_string;
+            hash_string = (char *) malloc(SHA256_DIGEST_LENGTH * sizeof(char) * 8); 
+
+            int i;
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+                printf("hash[%d] = %02x\n", i, hash[i]);
+                sprintf(hash_string + i, "%02x", hash[i]);
+                printf("hash_string[%d] = %s\n", i, hash_string + i);
+            }
+
+            printf("Clave_aux:%s:\n", clave_aux);
+            printf("Hash:%s:\n", hash_string - SHA256_DIGEST_LENGTH + 1);
+
+            return strcmp(clave_aux, hash_string) == 0 ? TRUE : FALSE;
             break;
         }
     }
@@ -94,7 +110,7 @@ int do_server_loop(SSL *ssl)
     SSL_read(ssl, nombre_usuario, sizeof(nombre_usuario));
     char *pos = strchr(nombre_usuario, '\n');
     *pos = '\0';
-    printf("Nombre de usuario recibido %s", nombre_usuario);
+    printf("Nombre de usuario recibido.\n");
 
     //  Enviamos la solicitud de la contrasena
     printf("Solicitando clave ...\n");
@@ -105,7 +121,7 @@ int do_server_loop(SSL *ssl)
     SSL_read(ssl, clave, sizeof(clave));
     pos = strchr(clave, '\n');
     *pos = '\0';
-    printf("Clave recibida %s", clave);
+    printf("Clave recibida.\n");
 
     // Verificando credenciales
     if (validar_credenciales(nombre_usuario, clave) == TRUE) {

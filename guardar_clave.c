@@ -32,20 +32,22 @@ int main(int argc, const char *argv[])
         int_error("Formato incorrecto de parametros");
     } 
 
-    printf("Nombre:%s:", nombre_usuario);
-    printf("Clave:%s:", clave);
-
     FILE * archivo;
-    archivo = fopen("shadow", "w+");
+    archivo = fopen("shadow", "a+");
     if (archivo == NULL)
         int_error("Error abriendo el archivo de claves");
 
-    char *pos = strchr(nombre_usuario, '\n');
-    *pos = '\0';
-    pos = strchr(clave, '\n');
-    *pos = '\0';
+    //  Cifrar la clave con SHA
+    u_int8_t hash[SHA256_DIGEST_LENGTH];
+    calcular_SHA(clave, &hash);
 
-    fprintf(archivo, "%s %s\n", nombre_usuario, clave);
+    int n;
+    fprintf(archivo, "%s ", nombre_usuario);
+    for (n = 0; n < SHA256_DIGEST_LENGTH; n++) {
+        fprintf(archivo, "%02x", hash[n]);
+    }
+    fprintf(archivo, "\n");
 
+    fclose(archivo);
     return TRUE;
 }

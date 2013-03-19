@@ -21,3 +21,5 @@
 void handle_error(const char *file, int lineno, const char *msg);
     
 void init_OpenSSL(void);
+
+int calcular_SHA(char *texto, u_int8_t * results[]);
