@@ -68,11 +68,11 @@ void *connection_handler(void *socket_desc){
     memset (clave,'\0',240);
     printf("Solicitando nombre de usuario...\n");
 	//Send some messages to the client
-	write(sock , "Nombre de usuario" , 20);
+	write(sock , "Nombre de usuario: " , 20);
 	//Receive a message from client
 	if( (read_size = recv(sock , nombre_usuario , 2000 , 0)) > 0 ){
 		//Send the message back to client
-		write(sock , nombre_usuario , strlen(nombre_usuario));
+		/*write(sock , nombre_usuario , strlen(nombre_usuario));*/
 	}
 
 	if(read_size == 0){
@@ -89,12 +89,12 @@ void *connection_handler(void *socket_desc){
 //        memset (client_message,'\0',strlen(client_message));
     //  Enviamos la solicitud de la contrasena
     printf("Solicitando clave...\n");
-	write(sock , "Clave" , 5);
+	write(sock , "Clave: " , 7);
     memset (clave,'\0',240);
 	//Receive a message from client
     if( (read_size = recv(sock , clave , 2000 , 0)) > 0 ){
 	    //Send the message back to client
-	    write(sock , clave , strlen(clave));
+		/*write(sock , clave , strlen(clave));*/
     }
 	
 	if(read_size == 0){
@@ -106,14 +106,40 @@ void *connection_handler(void *socket_desc){
 
     printf("Clave recibida. \n");
 
-//        memset (client_message,'\0',strlen(client_message));
-// Verificando credenciales
+    // Verificando credenciales
     if (validar_credenciales(nombre_usuario, clave) == TRUE) {
-        write(sock , "\nUsuario autorizado." , 23);
-    } else {
-        write(sock , "\nAcceso denegado." , 20);
-    }
+        write(sock , "Usuario autorizado." , 23);
+        sleep(1);
+        char aux2[240];
+        read_size = recv(sock , aux2 , 2000 , 0); 
+        if(read_size == 0){
+            puts("Cliente desconectado.");
+            fflush(stdout);
+            return 1;
+        }else if(read_size == -1){
+            perror("recv failed");
+            return 1;
+        }
 
+        while (strcmp(aux2, "salir") != 0) {
+            write(sock , aux2 , strlen(aux2));
+            memset(aux2, '\0', 240);
+            if( (read_size = recv(sock , clave , 2000 , 0)) > 0 ){
+	            //Send the message back to client
+                write(sock , clave , strlen(clave));
+            }
+            if(read_size == 0){
+                puts("Cliente desconectado.");
+                fflush(stdout);
+            }else if(read_size == -1){
+                perror("recv failed");
+            }
+        }
+
+    } else {
+        write(sock , "Acceso denegado." , 20);
+    }
+    
     sleep(1);
     write(sock , "salir" , 5);
 	//Free the socket pointer
@@ -124,7 +150,7 @@ void *connection_handler(void *socket_desc){
 
 int main(int argc , char *argv[]){
 
-    if(argc != 3 || strcmp(argv[2],"5000")<0){
+    if(argc != 3 || strcmp(argv[2],"1024")<0){
         printf("\nUso: %s -p puerto\n",argv[0]);
         return 1;
     } 

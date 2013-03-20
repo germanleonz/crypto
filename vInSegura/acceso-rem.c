@@ -8,7 +8,7 @@
 
 int main(int argc , char *argv[]){
 
-    if(argc != 5 || strcmp(argv[1],"-s")!=0 || strcmp(argv[4],"5000")<0){
+    if(argc != 5 || strcmp(argv[1],"-s")!=0 || strcmp(argv[4],"1024")<0){
         printf("\nUso: %s -s ip-servidor -p puerto-servidor \n",argv[0]);
         return 1;
     } 
@@ -53,9 +53,9 @@ int main(int argc , char *argv[]){
         if(strcmp(server_reply,"salir")==0)
             salir = 0;
         else
-		    printf("server: %s \n",server_reply);
+		    printf("%s\n",server_reply);
 
-        if(strcmp(server_reply,"Nombre de usuario")==0 || strcmp(server_reply,"Clave")==0){
+        if(strcmp(server_reply,"Nombre de usuario: ")==0 || strcmp(server_reply,"Clave: ")==0){
 		    scanf("%s" , message);
 		    printf("\n");
 		    //Send some data
