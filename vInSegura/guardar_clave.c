@@ -20,6 +20,7 @@ int comprobar_parametros(int argc, char* argv[], char* nombre_usuario[], char * 
         default: //Para cualquier otro caso
             return FALSE;	
     }
+    return FALSE;	
 }
 
 int main(int argc, const char *argv[])
