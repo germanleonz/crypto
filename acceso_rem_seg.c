@@ -63,14 +63,14 @@ int comprobar_parametros(int argc, char* argv[], char* dir_servidor[], char * nu
 }
 
 /*
- *	Funcion: do_client_loop
+ *	Funcion: solicitar_login
  *	-----------------------
  *	Funcion que deja al cliente en un loop
  * 
  *  ssl	    Objeto SSL*
  * 
  */
-int do_client_loop(SSL *ssl)
+int solicitar_login(SSL *ssl)
 {
     //  El servidor envia el primer mensaje el cual es la solicitud
     //  del nombre de usuario
@@ -98,7 +98,17 @@ int do_client_loop(SSL *ssl)
     err = SSL_read(ssl, aux, sizeof(aux));
     fwrite(aux, 1, strlen(aux), stdout);
 
-    return 1;
+    if (strcmp(aux, "Usuario autorizado\n") == 0) {
+        //  Aqui comienza el loop de echo
+        char aux2[240];
+        while (TRUE) {
+            fgets(aux2, sizeof(aux2), stdin);
+            err = SSL_write(ssl, aux2, strlen(aux2));
+            if (strcmp(aux2, "salir\n") == 0)
+                return TRUE;
+        }
+    }
+    return TRUE;
 }
 
 /*
@@ -150,7 +160,7 @@ int main(int argc, const char *argv[])
         int_error("Error conectando el objeto SSL");
 
     fprintf(stderr, "*** Conexion SSL abierta ***\n");
-    if (do_client_loop(ssl))
+    if (solicitar_login(ssl))
         SSL_shutdown(ssl);
     else
         SSL_clear(ssl);

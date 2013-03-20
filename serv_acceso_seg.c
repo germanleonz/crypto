@@ -51,7 +51,6 @@ int comprobar_parametros(int argc, char* argv[], char* num_puerto[])
 int validar_credenciales(char * nombre_usuario, char * clave)
 {
     //  Abrir archivo con las claves
-    int ok = 0;
     FILE * archivo;
     archivo = fopen("shadow", "r");
     if (archivo == NULL)
@@ -77,11 +76,7 @@ int validar_credenciales(char * nombre_usuario, char * clave)
                 sprintf(hash_string + (2*i), "%02x", hash[i]);
             }
 
-            printf("Clave en archivo:%s:\n", clave_aux);
-            printf("Hash string: %s\n", hash_string);
-
             return strcmp(clave_aux, hash_string) == 0 ? TRUE : FALSE;
-            break;
         }
     }
 
@@ -89,14 +84,14 @@ int validar_credenciales(char * nombre_usuario, char * clave)
 }
 
 /*
- *	Funcion: do_server_loop
+ *	Funcion: procesar_login
  *	-----------------------------
  *	Hace la verificacion de los parametros introducidos por la linea de comandos
  * 
  *  argc:				cantidad de argumentos que se recibieron consola
  * 
  */
-int do_server_loop(SSL *ssl)
+int procesar_login(SSL *ssl)
 {
     //  Enviamos la solicitud del nombre de usuario
     printf("Solicitando nombre de usuario...\n");
@@ -124,6 +119,17 @@ int do_server_loop(SSL *ssl)
     if (validar_credenciales(nombre_usuario, clave) == TRUE) {
         const char acceso_autorizado[] = "Usuario autorizado\n";
         SSL_write(ssl, acceso_autorizado, strlen(acceso_autorizado));
+
+        // Comienza la recepcion de mensajes a los cuales hacemos echo
+        char aux2[240];
+        int err2;
+        while(TRUE) {
+            err2 = SSL_read(ssl, aux2, sizeof(aux2));
+            if (strcmp(aux2, "salir\n") == 0) 
+                break;
+            fwrite(aux2, 1, strlen(aux2), stdout);
+            memset(aux2, 0, 240);
+        }
     } else {
         const char acceso_negado[] = "Acceso negado\n";
         SSL_write(ssl, acceso_negado, strlen(acceso_negado));
@@ -153,7 +159,7 @@ void THREAD_CC server_thread(void *arg)
         int_error("Error aceptando conexion SSL");
 
     fprintf(stderr, "*** Conexion SSL abierta ***\n");
-    if (do_server_loop(ssl))
+    if (procesar_login(ssl))
         SSL_shutdown(ssl);
     else 
         SSL_clear(ssl);
