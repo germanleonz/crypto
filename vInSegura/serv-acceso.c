@@ -43,9 +43,6 @@ int validar_credenciales(char * nombre_usuario, char * clave)
                 sprintf(hash_string + (2*i), "%02x", hash[i]);
             }
 
-            printf("Clave en archivo:%s:\n", clave_aux);
-            printf("Hash string: %s\n", hash_string);
-
             return strcmp(clave_aux, hash_string) == 0 ? TRUE : FALSE;
             break;
         }
@@ -56,93 +53,78 @@ int validar_credenciales(char * nombre_usuario, char * clave)
 
 
 /*
- * This will handle connection for each client
+ * Maneja la conexion para cada cliente.
  * */
-void *connection_handler(void *socket_desc){
-	//Get the socket descriptor
+void *atiende_conexion(void *socket_desc){
+	
 	int sock = *(int*)socket_desc;
 	int read_size;
 	char nombre_usuario[240];
     char clave[240];
     memset (nombre_usuario,'\0',240);
     memset (clave,'\0',240);
+    //Solicita nombre de usuario al cliente.
     printf("Solicitando nombre de usuario...\n");
-	//Send some messages to the client
 	write(sock , "Nombre de usuario: " , 20);
-	//Receive a message from client
-	if( (read_size = recv(sock , nombre_usuario , 2000 , 0)) > 0 ){
-		//Send the message back to client
-		/*write(sock , nombre_usuario , strlen(nombre_usuario));*/
-	}
-
+	//Recibe usuario.
+	read_size = recv(sock , nombre_usuario , 240 , 0);
 	if(read_size == 0){
 		puts("Cliente desconectado.");
 		fflush(stdout);
 	}else if(read_size == -1){
 		perror("recv failed");
 	}
-
+    char *pos = strchr(nombre_usuario, '\n');
+    *pos = '\0';
     printf("Nombre de usuario recibido. \n");
 
-//        puts("Existe el Usuario.");
-
-//        memset (client_message,'\0',strlen(client_message));
     //  Enviamos la solicitud de la contrasena
     printf("Solicitando clave...\n");
 	write(sock , "Clave: " , 7);
     memset (clave,'\0',240);
-	//Receive a message from client
-    if( (read_size = recv(sock , clave , 2000 , 0)) > 0 ){
-	    //Send the message back to client
-		/*write(sock , clave , strlen(clave));*/
-    }
-	
+	//Recibe contrasena
+    read_size = recv(sock , clave , 240 , 0);
+
 	if(read_size == 0){
 	    puts("Cliente desconectado.");
 	    fflush(stdout);
     }else if(read_size == -1){
 	    perror("recv failed");
     }
-
+    pos = strchr(clave, '\n');
+    *pos = '\0';
     printf("Clave recibida. \n");
 
     // Verificando credenciales
     if (validar_credenciales(nombre_usuario, clave) == TRUE) {
-        write(sock , "Usuario autorizado." , 23);
-        sleep(1);
+        write(sock , "Usuario autorizado\n" , 23);
+        puts("Usuario autorizado. Reenviando mensajes al Usuario.");
         char aux2[240];
-        read_size = recv(sock , aux2 , 2000 , 0); 
-        if(read_size == 0){
-            puts("Cliente desconectado.");
-            fflush(stdout);
-            return 1;
-        }else if(read_size == -1){
-            perror("recv failed");
-            return 1;
-        }
-
-        while (strcmp(aux2, "salir") != 0) {
-            write(sock , aux2 , strlen(aux2));
-            memset(aux2, '\0', 240);
-            if( (read_size = recv(sock , clave , 2000 , 0)) > 0 ){
-	            //Send the message back to client
-                write(sock , clave , strlen(clave));
-            }
+        int salir = 1;
+        memset(aux2, '\0', 240);
+        while(salir){
+            read_size = recv(sock , aux2 , 240 , 0); 
             if(read_size == 0){
                 puts("Cliente desconectado.");
                 fflush(stdout);
+                return 0;
             }else if(read_size == -1){
                 perror("recv failed");
+                return 0;
             }
-        }
+            write(sock , aux2 , strlen(aux2));
+            if(strcmp(aux2, "salir\n") == 0)
+                salir = 0;
+            memset(aux2, '\0', 240);
 
+        }
+        puts("Cliente desconectado.");       
     } else {
-        write(sock , "Acceso denegado." , 20);
+        write(sock , "Acceso denegado\n" , 20);
+        puts("Acceso denegado");
     }
-    
-    sleep(1);
-    write(sock , "salir" , 5);
-	//Free the socket pointer
+
+	//Libera socket
 	free(socket_desc);
 	
 	return 0;
@@ -158,36 +140,31 @@ int main(int argc , char *argv[]){
 	int socket_desc , client_sock , c , *new_sock;
 	struct sockaddr_in server , client;
 	
-	//Create socket
+	//Crea el socket
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1){
 		printf("No se pudo crear el socket");
 	}
-	puts("Socket creado");
 	
-	//Prepare the sockaddr_in structure
+	//Prepara la estrucura sockaddr_in 
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons(  atoi(argv[2]) );
 	
-	//Bind
+	//Conecta
 	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
 	{
-		//print the error message
 		perror("fallo conexion. Error");
 		return 1;
 	}
-	puts("conexion creada.");
 	
-	//Listen
+	//Espera conexion
 	listen(socket_desc , 3);
 	
-	//Accept and incoming connection
 	c = sizeof(struct sockaddr_in);
 	
-	
-	//Accept and incoming connection
-	puts("Esperando conexiones...");
+	//Acepta la conexion
+	printf("Servidor Iniciado. Esperando conexiones puerto %s...\n", argv[2]);
 	c = sizeof(struct sockaddr_in);
 	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
 	{
@@ -196,16 +173,12 @@ int main(int argc , char *argv[]){
 		pthread_t sniffer_thread;
 		new_sock = malloc(1);
 		*new_sock = client_sock;
-		
-		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
+		//crea el hilo que atendera la conexion
+		if( pthread_create( &sniffer_thread , NULL ,  atiende_conexion , (void*) new_sock) < 0)
 		{
 			perror("No se pudo crear el hilo.");
 			return 1;
 		}
-		
-		//Now join the thread , so that we dont terminate before the thread
-		//pthread_join( sniffer_thread , NULL);
-//		puts("Hilo asignado.");
 	}
 	
 	if (client_sock < 0){
@@ -214,5 +187,3 @@ int main(int argc , char *argv[]){
 	}
 	return 0;
 }
-
-

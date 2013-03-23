@@ -1,5 +1,5 @@
 #include "common.h"
-
+#include <stdlib.h>
 #define CERTFILE "client.pem"
 
 /*
@@ -102,10 +102,20 @@ int solicitar_login(SSL *ssl)
         //  Aqui comienza el loop de echo
         char aux2[240];
         while (TRUE) {
+            printf("Escribe mensaje (salir): ");
             fgets(aux2, sizeof(aux2), stdin);
+
             err = SSL_write(ssl, aux2, strlen(aux2));
-            if (strcmp(aux2, "salir\n") == 0)
+            memset(aux2, 0, 240);
+            memset(aux, 0, 240);
+            err = SSL_read(ssl, aux, sizeof(aux));
+//            fwrite(aux, 1, strlen(aux), stdout);
+
+            if (strcmp(aux, "salir\n") == 0)
                 return TRUE;
+            else                
+                printf("Servidor: %s\n",aux);
+
         }
     }
     return TRUE;
@@ -128,8 +138,19 @@ int main(int argc, const char *argv[])
 
     int parametros_ok = comprobar_parametros(argc, argv, &dir_servidor, &num_puerto);
     if (!parametros_ok) {
-        int_error("Formato incorrecto de parametros");
+        printf("\nUso: %s -s ip-servidor -p puerto-servidor \n",argv[0]);
+        return 1;
     }
+system("clear");
+printf("\n      ########################VERSION#######SEGURA##########################\n");      
+printf("      #  __________.__                                 .__    .___         #\n");
+printf("      #  \\______   \\__| ____   _______  __ ____   ____ |__| __| _/____     #\n");
+printf("      #   |    |  _/  |/ __ \\ /    \\  \\/ // __ \\ /    \\|  |/ __ |/  _ \\    #\n"); 
+printf("      #   |    |   \\  \\  ___/|   |  \\   /\\  ___/|   |  \\  / /_/ (  <_> )   #\n");
+printf("      #   |______  /__|\\___  >___|  /\\_/  \\___  >___|  /__\\____ |\\____/    #\n");
+printf("      #          \\/        \\/     \\/          \\/     \\/        \\/          #\n"); 
+printf("      #                                                                    #\n");
+printf("      ########################VERSION#######SEGURA##########################\n\n");
 
     //  Inicializacion de OpenSSL
     BIO     *conn;
@@ -144,7 +165,7 @@ int main(int argc, const char *argv[])
     //  Establecemos la conexion con el servidor
     char * direccion_puerto = malloc(snprintf(NULL, 0, "%s:%s", dir_servidor, num_puerto) + 1);
     sprintf(direccion_puerto, "%s:%s", dir_servidor, num_puerto);
-    printf("Estableciendo conexion con: %s\n", direccion_puerto),
+//    printf("Estableciendo conexion con: %s\n", direccion_puerto),
 
     conn = BIO_new_connect(direccion_puerto);
     if (!conn) 
@@ -159,7 +180,7 @@ int main(int argc, const char *argv[])
     if (SSL_connect(ssl) <= 0) 
         int_error("Error conectando el objeto SSL");
 
-    fprintf(stderr, "*** Conexion SSL abierta ***\n");
+    fprintf(stderr, "*** Conexion SSL abierta ***\n\n");
     if (solicitar_login(ssl))
         SSL_shutdown(ssl);
     else

@@ -117,21 +117,27 @@ int procesar_login(SSL *ssl)
 
     // Verificando credenciales
     if (validar_credenciales(nombre_usuario, clave) == TRUE) {
+        puts("Usuario autorizado. Reenviando mensajes al Usuario.");
         const char acceso_autorizado[] = "Usuario autorizado\n";
         SSL_write(ssl, acceso_autorizado, strlen(acceso_autorizado));
 
         // Comienza la recepcion de mensajes a los cuales hacemos echo
         char aux2[240];
         int err2;
-        while(TRUE) {
+        memset(aux2, '\0', 240);
+        int salir = 1;
+        while(salir){
             err2 = SSL_read(ssl, aux2, sizeof(aux2));
-            if (strcmp(aux2, "salir\n") == 0) 
-                break;
-            fwrite(aux2, 1, strlen(aux2), stdout);
-            memset(aux2, 0, 240);
+//            fwrite(aux2, 1, strlen(aux2), stdout);
+            SSL_write(ssl, aux2, strlen(aux2));
+            if(strcmp(aux2, "salir\n") == 0)
+                salir = 0;
+            memset(aux2, '\0', 240);
+
         }
     } else {
-        const char acceso_negado[] = "Acceso negado\n";
+        puts("Acceso denegado");
+        const char acceso_negado[] = "Acceso denegado\n";
         SSL_write(ssl, acceso_negado, strlen(acceso_negado));
     }
 
@@ -158,7 +164,7 @@ void THREAD_CC server_thread(void *arg)
     if (SSL_accept(ssl) <= 0)
         int_error("Error aceptando conexion SSL");
 
-    fprintf(stderr, "*** Conexion SSL abierta ***\n");
+    fprintf(stderr, "\n\n*** Conexion SSL abierta ***\n");
     if (procesar_login(ssl))
         SSL_shutdown(ssl);
     else 
@@ -186,11 +192,9 @@ int main(int argc, const char *argv[])
 
     int parametros_ok = comprobar_parametros(argc, argv, &num_puerto);
     if (!parametros_ok) {
-        int_error("Formato incorrecto de parametros");
+        printf("\nUso: %s -p puerto\n",argv[0]);
+        return 1;
     } 
-
-    printf("Preparandose para recibir conexiones por el puerto %s ...\n", num_puerto);
-
     //  Inicializacion de OpenSSL
     BIO         *acc, *client;
     SSL         *ssl;
@@ -208,6 +212,8 @@ int main(int argc, const char *argv[])
         int_error("Error creating server socket.");
     if (BIO_do_accept(acc) <= 0) 
         int_error("Error binding server socket");
+
+    printf("Servidor Iniciado. Esperando conexiones conexiones por el puerto %s ...\n", num_puerto);
 
     //  Esto es lo que se hace una vez que estamos esperando conexiones
     for (;;) {

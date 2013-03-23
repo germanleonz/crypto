@@ -30,7 +30,8 @@ int main(int argc, const char *argv[])
 
     int parametros_ok = comprobar_parametros(argc, argv, &nombre_usuario, &clave);
     if (!parametros_ok) {
-        int_error("Formato incorrecto de parametros");
+        printf("\nUso: %s -u nombre-usuario -c clave \n",argv[0]);
+        return 0;
     } 
 
     FILE * archivo;
